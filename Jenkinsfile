@@ -172,7 +172,7 @@ pipeline {
                     for (j=0; j < 7; j++) {
                         appurl = sh(script: "sudo kubectl get svc web-svc -n production -o jsonpath={.status.loadBalancer.ingress[0].hostname}", returnStdout: true)
                         try {
-                            final_test_rslt = sh(script: "curl -s -w '%{http_code}' -o /dev/null http://$appurl/index.html", returnStdout: true)
+                            final_test_rslt = sh(script: "curl -s -w '%{http_code}' -o /dev/null http://$appurl/index#error_in_final_test.html", returnStdout: true)
                         }
                         catch (exception) {
                             final_test_rslt = '400'
