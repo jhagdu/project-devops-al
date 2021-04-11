@@ -1,0 +1,129 @@
+- name: Create a ConfigMap for Prometheus Config
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: prom-config
+      data:
+        prometheus.yml: |
+          global:
+            scrape_interval:     15s
+
+            external_labels:
+              monitor: 'web-monitor'
+
+          scrape_configs:
+          - job_name: 'web-metric'
+            scrape_interval: 5s
+
+            metrics_path: /metrics
+            scheme: http
+            tls_config:
+              insecure_skip_verify: true
+
+            kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                - production
+
+            relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_scrape]
+              regex: true
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              regex: apache-exporter
+              action: keep
+            - action: labelmap
+              regex: __meta_kubernetes_pod_label_(.+)
+            - source_labels: [__meta_kubernetes_namespace]
+              action: replace
+              target_label: kubernetes_namespace
+            - source_labels: [__meta_kubernetes_pod_name]
+              action: replace
+              target_label: kubernetes_pod_name
+
+- name: Create a PVC for Prometheus
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: prom-data-pvc
+        labels:
+          name: prom-data-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi
+
+
+- name: Create Deployment for Prometheus
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: prom-dep
+      spec:
+        selector:
+          matchLabels:
+            app: prom-pod
+            version: v1
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: prom-pod
+              version: v1
+          spec:
+            serviceAccountName: monitor
+            securityContext:
+              runAsUser: 1000
+              fsGroup: 1000
+            containers:
+            - name: prometheus
+              image: prom/prometheus:v2.7.1
+              ports:
+              - containerPort: 9090
+              volumeMounts:
+              - name: prom-config-volume
+                mountPath: /etc/prometheus/prometheus.yml
+                subPath: prometheus.yml
+              - name: prom-data
+                mountPath: /prometheus/
+            volumes:
+            - name: prom-config-volume
+              configMap:
+                name: prom-config
+            - name: prom-data
+              persistentVolumeClaim:
+                claimName: prom-data-pvc
+            restartPolicy: Always
+
+- name: Create Service for Prometheus
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: prom-svc
+      spec:
+        type: LoadBalancer
+        selector:
+          app: prom-pod
+        ports:
+        - port: 9090
+          name: prom-port
+          nodePort: 30090

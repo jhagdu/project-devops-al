@@ -1,0 +1,42 @@
+- name: Create Deployment for Web Pods
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web-dep
+      spec:
+        selector:
+          matchLabels:
+            pod: web-pod
+        replicas: 2
+        template:
+          metadata:
+            labels:
+              pod: web-pod
+            annotations:
+              scrape: "true"
+          spec:
+            containers:
+            - name: webserver
+              image: "{{ prod_img }}"
+              ports:
+              - containerPort: 80
+                protocol: TCP
+              volumeMounts:
+              - name: apache-logs-vol
+                mountPath: /var/log/httpd/
+            - name: apache-exporter
+              image: jhagdu/apache_exporter
+              env:
+              - name: SCRAPE_URI
+                value: "http://localhost/server-status/?auto"
+              ports:
+              - containerPort: 9117
+            volumes:
+            - name: apache-logs-vol
+              persistentVolumeClaim:
+                claimName: apache-logs-pvc
+            restartPolicy: Always

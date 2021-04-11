@@ -1,0 +1,41 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testing
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-dep-test
+  namespace: testing
+spec:
+  selector:
+    matchLabels:
+      env: testing-pod
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        env: testing-pod
+    spec:
+      containers:
+      - name: web-container
+        image: jhagdu/web:IMAGE_VERSION
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-svc
+  namespace: testing
+spec:
+  type: NodePort
+  selector:
+    env: testing-pod
+  ports:
+  - port: 80
+    protocol: TCP
+    name: web-test-port
+---

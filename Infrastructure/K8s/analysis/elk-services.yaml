@@ -1,0 +1,36 @@
+- name: Create Service for ElasticSearch Pods
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: elk-svc-int
+      spec:
+        type: ClusterIP
+        selector:
+          app: elk-pod
+        ports:
+        - port: 9200
+          name: es-rest-port
+        - port: 9300
+          name: es-net-port
+
+- name: Create Service for Kibana Pods
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: kib-svc
+      spec:
+        type: LoadBalancer
+        selector:
+          app: elk-pod
+        ports:
+        - port: 5601
+          name: kib-port
+          nodePort: 30601

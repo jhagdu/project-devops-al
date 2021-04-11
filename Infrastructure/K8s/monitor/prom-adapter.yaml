@@ -1,0 +1,67 @@
+- name: Deploy Metrics Server Components
+  command: "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
+
+- name: Check Packages Facts
+  package_facts:
+    manager: auto
+
+- name: Install Helm if not installed
+  when: "'helm' not in ansible_facts.packages"
+  block:
+  - name: Download Script
+    get_url: 
+      url: https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+      dest: $HOME/get_helm.sh
+  - name: Change Script Permission
+    file:
+      path: $HOME/get_helm.sh
+      mode: 700
+  - name: Install Helm
+    shell: ./get_helm.sh
+    args:
+      chdir: $HOME/
+  rescue: 
+  - name: Install Go
+    package:
+      name: go
+      state: present
+    ignore_errors: yes
+  - name: Create Directory
+    file:
+      path: $HOME/helm-setup
+      state: directory
+    ignore_errors: yes
+  - name: Download Files
+    git:
+      repo: https://github.com/helm/helm.git
+      dest: $HOME/helm-setup/
+    ignore_errors: yes
+  - name: Install Helm
+    make:
+      chdir: $HOME/helm-setup/
+    ignore_errors: yes
+
+- name: Install Prometheus Adapter Helm Chart
+  community.kubernetes.helm:
+    chart_repo_url: https://prometheus-community.github.io/helm-charts
+    chart_ref: prometheus-adapter
+    release_name: prometheus-adapter
+    release_namespace: monitor
+    release_state: present
+    create_namespace: true
+    values:
+      prometheus:
+        url: "http://prom-svc.monitor.svc.cluster.local"
+      rules:
+        default: false
+        custom: 
+        - seriesQuery: 'apache_connections{kubernetes_namespace!="",kubernetes_pod_name!=""}'
+          resources:
+            overrides:
+              kubernetes_namespace: {resource: "namespace"}
+              kubernetes_pod_name: {resource: "pod"}
+          name:
+            matches: "^(.*)"
+            as: "${1}_total"
+          metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+          

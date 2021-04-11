@@ -1,0 +1,28 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Create a Namespace for Monitoring Environment
+    community.kubernetes.k8s:
+      api_version: v1
+      kind: Namespace
+      name: monitor
+      state: present
+
+  - name: Include play to Create Service Accounts and Cluster Role
+    include: accounts.yaml
+
+  - name: Include play to deploy Prometheus Adapter
+    include: prom-adapter.yaml
+
+  - name: Include play to deploy Prometheus
+    include: prometheus.yaml
+
+  - name: Include play to deploy Autoscalers
+    include: autoscale.yaml
+
+  - name: Include play to deploy Grafana
+    include: grafana.yaml
+
+  - name: Include play to deploy Matricbeat
+    include: metricbeat.yaml

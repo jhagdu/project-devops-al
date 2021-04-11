@@ -1,0 +1,73 @@
+- name: Create a Shared PVC
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: graf-data-pvc
+        labels:
+          name: graf-data-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi
+
+- name: Create Deployment for Grafana
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: graf-dep
+      spec:
+        selector:
+          matchLabels:
+            app: graf-pod
+            version: v1
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: graf-pod
+              version: v1
+          spec:
+            securityContext:
+              runAsUser: 472
+              fsGroup: 472
+            containers:
+            - name: grafana
+              image: grafana/grafana
+              ports:
+              - containerPort: 9090
+              volumeMounts:
+              - name: graf-data
+                mountPath: /var/lib/grafana/
+            volumes:
+            - name: graf-data
+              persistentVolumeClaim:
+                claimName: graf-data-pvc
+
+
+- name: Create Service for Grafana
+  community.kubernetes.k8s:
+    state: present
+    namespace: monitor
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: graf-svc
+      spec:
+        type: LoadBalancer
+        selector:
+          app: graf-pod
+        ports:
+        - port: 3000
+          name: prom-port
+          nodePort: 30030

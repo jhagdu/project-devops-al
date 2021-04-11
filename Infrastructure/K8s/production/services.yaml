@@ -1,0 +1,36 @@
+- name: Create Service for Web
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: web-svc
+      spec:
+        type: LoadBalancer
+        selector:
+          pod: web-pod
+        ports:
+        - port: 80
+          nodePort: 30080
+          protocol: TCP
+          name: web-port
+
+- name: Create Service for Metrics
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: metrics-svc
+      spec:
+        type: ClusterIP
+        selector:
+          pod: web-pod
+        ports:
+        - port: 9117
+          protocol: TCP
+          name: metrics-port

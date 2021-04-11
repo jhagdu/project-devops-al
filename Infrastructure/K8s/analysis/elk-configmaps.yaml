@@ -1,0 +1,55 @@
+- name: Create a ConfigMap for Filebeat Config
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: filebeat-conf
+      data:
+        filebeat.yml: |
+          ######################## Filebeat Configuration ############################
+
+          #==========================  Modules configuration =============================
+          filebeat.modules:
+
+          #-------------------------------- Apache Module --------------------------------
+          - module: apache
+            # Access logs
+            access:
+              enabled: true
+              var.paths: ["/home/access_log*"]
+              #input:
+
+            # Error logs
+            error:
+              enabled: true
+              var.paths: ["/home/error_log*"]
+              #input:
+
+          #==========================  Output configuration =============================
+
+          # ---------------------------- Elasticsearch Output ----------------------------
+          output.elasticsearch:
+            enabled: true
+            hosts: "http://elk-svc-int.analysis.svc.cluster.local:9200"
+
+          setup.kibana:
+            host: "http://kib-svc.analysis.svc.cluster.local:5601"
+
+- name: Create a ConfigMap for Kibana Config
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: kib-conf
+      data:
+        kibana.yml: |
+          server.name: kibana
+          server.host: "0"
+          elasticsearch.hosts: [ "http://localhost:9200" ]
+          monitoring.ui.container.elasticsearch.enabled: true

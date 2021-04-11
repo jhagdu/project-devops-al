@@ -1,0 +1,104 @@
+- name: Create Deployment for ElasticSearch and Kibana Pods
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: elk-dep
+      spec:
+        selector:
+          matchLabels:
+            app: elk-pod
+            version: v1
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: elk-pod
+              version: v1
+          spec:
+            securityContext:
+              runAsUser: 1000
+              fsGroup: 1000
+            containers:
+            - name: elasticsearch
+              image: elasticsearch:7.10.1
+              env:
+              - name: discovery.type
+                value: single-node
+              ports:
+              - containerPort: 9200
+              - containerPort: 9300
+              volumeMounts:
+              - name: es-data
+                mountPath: /usr/share/elasticsearch/data
+            - name: kibana
+              image: kibana:7.10.1
+              ports:
+              - containerPort: 5601
+              volumeMounts:
+              - name: kib-config-volume
+                mountPath: /usr/share/kibana/config/kibana.yml
+                subPath: kibana.yml
+              - name: kib-data
+                mountPath: /usr/share/kibana/data
+            volumes:
+            - name: kib-config-volume
+              configMap:
+                name: kib-conf
+            - name: kib-data
+              persistentVolumeClaim:
+                claimName: kib-data-pvc
+            - name: es-data
+              persistentVolumeClaim:
+                claimName: es-data-pvc
+            restartPolicy: Always
+
+- name: Create Deployment for filebeat Pods
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: web-log-dep
+      spec:
+        selector:
+          matchLabels:
+            app: web-log-pod
+            version: v1
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: web-log-pod
+              version: v1
+          spec:
+            securityContext:
+              runAsUser: 1000
+              fsGroup: 1000
+            containers:
+            - name: filebeat
+              image: docker.elastic.co/beats/filebeat:7.10.1
+              volumeMounts:
+              - name: filebeat-config-volume
+                mountPath: /usr/share/filebeat/filebeat.yml
+                subPath: filebeat.yml
+              - name: apache-logs-vol
+                mountPath: /home/
+              - name: filebeat-data
+                mountPath: /usr/share/filebeat/data
+            volumes:
+            - name: apache-logs-vol
+              persistentVolumeClaim:
+                claimName: apache-logs-pvc
+            - name: filebeat-config-volume
+              configMap:
+                name: filebeat-conf
+            - name: filebeat-data
+              persistentVolumeClaim:
+                claimName: filebeat-data-pvc
+            restartPolicy: Always

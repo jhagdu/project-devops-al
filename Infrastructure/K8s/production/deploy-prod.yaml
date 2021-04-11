@@ -1,0 +1,21 @@
+- hosts: localhost
+  gather_facts: false
+  vars:
+    prod_img: "{{ release_img }}"
+
+  tasks:
+  - name: Create a Namespace for Production Environment
+    community.kubernetes.k8s:
+      api_version: v1
+      kind: Namespace
+      name: production
+      state: present
+
+  - name: Include play to create K8s PVCs
+    include: pvcs.yaml
+
+  - name: Include play to create K8s Deployments
+    include: deployments.yaml
+
+  - name: Include play to create K8s Services
+    include: services.yaml

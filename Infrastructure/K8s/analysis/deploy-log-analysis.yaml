@@ -1,0 +1,22 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: Create a Namespace for Analysis Environment
+    community.kubernetes.k8s:
+      api_version: v1
+      kind: Namespace
+      name: analysis
+      state: present
+
+  - name: Include play to deploy ELK Stack
+    include: elk-configmaps.yaml
+
+  - name: Include play to create PVCs for ELK
+    include: elk-pvcs.yaml
+
+  - name: Include play to deploy ELK Stack
+    include: elk-deployments.yaml
+
+  - name: Include play to create Services for ELK
+    include: elk-services.yaml

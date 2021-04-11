@@ -1,0 +1,53 @@
+- name: Create a PVC for Kibana
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: kib-data-pvc
+        labels:
+          name: kib-data-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi
+
+- name: Create a PVC for ElasticSearch
+  community.kubernetes.k8s:
+    state: present
+    namespace: analysis
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: es-data-pvc
+        labels:
+          name: es-data-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi
+
+- name: Create a PVC for filebeat
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: filebeat-data-pvc
+        labels:
+          name: filebeat-data-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi

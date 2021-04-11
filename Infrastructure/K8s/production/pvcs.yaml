@@ -1,0 +1,17 @@
+- name: Create a Shared PVC
+  community.kubernetes.k8s:
+    state: present
+    namespace: production
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: apache-logs-pvc
+        labels:
+          name: apache-logs-pvc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:  
+          requests:
+            storage: 1Gi
