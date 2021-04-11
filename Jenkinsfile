@@ -86,7 +86,7 @@ pipeline {
                 container('testapp') {
                     script {
                         for (i=0; i < 3; i++) {
-                            test_rslt = sh(script: "curl -s -w '%{http_code}' -o /dev/null http://test-svc.testing.svc.cluster.local/index.html", returnStdout: true)
+                            test_rslt = sh(script: "curl -s -w '%{http_code}' -o /dev/null http://test-svc.testing.svc.cluster.local/indexerror.html", returnStdout: true)
                             if (test_rslt != '200') {
                                 error("Application Unreachable!")
                             }
